@@ -55,7 +55,7 @@ export default function Plan({ onBack, initialBudget, city, tripDates, reservati
         setItinerary(null);
         setActiveDay(1);
 
-        const apiKey = process.env.REACT_APP_GCP_API_KEY;
+        const apiKey = import.meta.env.VITE_GCP_API_KEY;
         const model = "gemini-3.1-flash-lite-preview";
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 

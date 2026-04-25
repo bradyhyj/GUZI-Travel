@@ -13,7 +13,7 @@ const Icon = ({ name, size = 16, color = "currentColor" }) => {
     minus: <line x1="5" y1="12" x2="19" y2="12" />,
     calendar: <><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></>
   };
-  return <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>;
+  return <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" /></svg>;
 };
 
 const CITY_CODES = {
@@ -29,7 +29,7 @@ export default function Landing({ onSearch, reservations = [], onBoarding, onCan
   const [startDate, setStartDate] = useState(initialDates?.startDate || new Date(2026, 4, 10));
   const [endDate, setEndDate] = useState(initialDates?.endDate || new Date(2026, 4, 15));
   const [adultCount, setAdultCount] = useState(1);
-  
+
   const [budgetInput, setBudgetInput] = useState(budget || 500000);
 
   // Sync internal input state if global budget changes
@@ -45,15 +45,15 @@ export default function Landing({ onSearch, reservations = [], onBoarding, onCan
 
   const flight = reservations.find(r => r.type === 'flight');
   const hotel = reservations.find(r => r.type === 'hotel');
-  
+
   let isMatched = false;
   let isDateMatched = false;
   let isCityMatched = false;
 
   if (flight && hotel) {
-      isDateMatched = flight.startDate?.getTime() === hotel.startDate?.getTime() && flight.endDate?.getTime() === hotel.endDate?.getTime();
-      isCityMatched = flight.city === hotel.city;
-      isMatched = isDateMatched && isCityMatched;
+    isDateMatched = flight.startDate?.getTime() === hotel.startDate?.getTime() && flight.endDate?.getTime() === hotel.endDate?.getTime();
+    isCityMatched = flight.city === hotel.city;
+    isMatched = isDateMatched && isCityMatched;
   }
 
   const hasFlight = flight !== undefined;
@@ -80,10 +80,10 @@ export default function Landing({ onSearch, reservations = [], onBoarding, onCan
 
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "#f5f7fa", fontFamily: 'sans-serif' }}>
-      <header style={headerContainer}><span style={logoStyle}>GAZA.com</span></header>
+      <header style={headerContainer}><span style={logoStyle}>GUZI.com</span></header>
       <section style={heroContainer}>
         <div style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
-          <h1 style={heroTitle}>설렘이 필요할 때, GAZA여행</h1>
+          <h1 style={heroTitle}>설렘이 필요할 때, 거지여행</h1>
           <p style={heroSubTitle}>부산에서 떠나는 전 세계 여행</p>
         </div>
         <div style={{ maxWidth: 1050, width: '100%', margin: "0 auto", position: 'relative', zIndex: 10 }}>
@@ -132,9 +132,9 @@ export default function Landing({ onSearch, reservations = [], onBoarding, onCan
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 12, opacity: reservations.length > 0 ? 0.5 : 1, pointerEvents: reservations.length > 0 ? 'none' : 'auto' }}>
             <div style={{ display: 'flex', gap: 8 }}>
               {[500000, 1000000, 1500000].map(amt => (
-                <button 
+                <button
                   key={amt}
-                  onClick={() => { setBudgetInput(amt); onBudgetChange(amt); }} 
+                  onClick={() => { setBudgetInput(amt); onBudgetChange(amt); }}
                   style={{ padding: '6px 14px', borderRadius: 20, border: budget === amt ? '1px solid #3264ff' : '1px solid #ddd', background: budget === amt ? '#f0f4ff' : '#fff', color: budget === amt ? '#3264ff' : '#666', fontWeight: 700, cursor: 'pointer', transition: '0.2s', fontSize: 13 }}
                 >
                   {amt / 10000}만원
@@ -155,7 +155,7 @@ export default function Landing({ onSearch, reservations = [], onBoarding, onCan
                 />
                 <span style={{ fontWeight: 800, color: '#111', marginLeft: 5 }}>원</span>
               </div>
-              <button 
+              <button
                 onClick={() => onBudgetChange(budgetInput)}
                 style={{ padding: '0 20px', backgroundColor: '#3264ff', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '800', cursor: 'pointer', transition: '0.2s' }}
                 onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#1e40af'}
@@ -173,7 +173,7 @@ export default function Landing({ onSearch, reservations = [], onBoarding, onCan
               미리 쓴 항공/숙소 금액: <span style={{ color: '#111', fontWeight: 800, marginLeft: 5 }}>₩{spentSoFar.toLocaleString()}</span>
             </div>
             <div style={{ fontSize: 16, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 10 }}>
-              AI 플래너 실사용 잔액: 
+              AI 플래너 실사용 잔액:
               <span style={{ color: remainingBudget >= 0 ? '#10b981' : '#ef4444', fontSize: 18 }}>₩{remainingBudget.toLocaleString()}</span>
             </div>
           </div>
@@ -202,8 +202,8 @@ export default function Landing({ onSearch, reservations = [], onBoarding, onCan
                   <div style={{ fontSize: 13, color: '#999' }}>예약자: {res.userName}</div>
                   <div style={{ fontWeight: 800 }}>₩{res.price.toLocaleString()}</div>
                 </div>
-                <button 
-                  onClick={() => onCancelBooking && onCancelBooking(res.id)} 
+                <button
+                  onClick={() => onCancelBooking && onCancelBooking(res.id)}
                   style={{ width: '100%', marginTop: 15, padding: '10px 0', border: '1px solid #ff4d4f', background: '#fff0f0', color: '#ff4d4f', borderRadius: 8, fontWeight: 700, cursor: 'pointer', transition: '0.2s' }}
                 >
                   예약 취소
@@ -216,9 +216,9 @@ export default function Landing({ onSearch, reservations = [], onBoarding, onCan
         <div style={{ marginTop: 40, display: 'flex', justifyContent: 'center', flexDirection: 'column', alignItems: 'center' }}>
           {hasBoth && !isMatched && (
             <div style={{ color: '#ef4444', fontWeight: 800, marginBottom: 20, textAlign: 'center', background: '#fef2f2', padding: '12px 20px', borderRadius: 10 }}>
-               ⚠️ 항공권과 숙소의 일정이 다릅니다.<br/>
-               {!isCityMatched && "도착지(도시)를 동일하게 맞춰주세요. "}
-               {!isDateMatched && "여행 기간(날짜)을 동일하게 맞춰주세요."}
+              ⚠️ 항공권과 숙소의 일정이 다릅니다.<br />
+              {!isCityMatched && "도착지(도시)를 동일하게 맞춰주세요. "}
+              {!isDateMatched && "여행 기간(날짜)을 동일하게 맞춰주세요."}
             </div>
           )}
           <button
@@ -268,7 +268,7 @@ export default function Landing({ onSearch, reservations = [], onBoarding, onCan
                   </div>
                   <div style={{ flex: 1, margin: '0 15px', height: 2, background: 'rgba(255,255,255,0.3)', position: 'relative' }}>
                     <div style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', background: '#3264ff', padding: '0 5px' }}>
-                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.9 }}><path d="M22 2L11 13" /><path d="M22 2l-7 20-4-9-9-4 20-7z" /></svg>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.9 }}><path d="M22 2L11 13" /><path d="M22 2l-7 20-4-9-9-4 20-7z" /></svg>
                     </div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
