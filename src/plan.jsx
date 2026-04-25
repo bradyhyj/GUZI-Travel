@@ -21,20 +21,24 @@ export default function Plan({ onBack, initialBudget, city, tripDates, reservati
     const startObj = new Date(sDate.getFullYear(), sDate.getMonth(), sDate.getDate());
     const endObj = new Date(eDate.getFullYear(), eDate.getMonth(), eDate.getDate());
     const diffTime = Math.abs(endObj - startObj);
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; 
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
     const days = diffDays || 3;
 
     let initialMoney = 100000;
     if (initialBudget) {
-        if (initialBudget.includes("만")) {
-            initialMoney = parseInt(initialBudget.replace(/[^0-9]/g, '')) * 10000;
-        } else if (parseInt(initialBudget.replace(/[^0-9]/g, ''))) {
-            initialMoney = parseInt(initialBudget.replace(/[^0-9]/g, ''));
+        if (typeof initialBudget === 'number') {
+            initialMoney = initialBudget;
+        } else if (typeof initialBudget === 'string') {
+            if (initialBudget.includes("만")) {
+                initialMoney = parseInt(initialBudget.replace(/[^0-9]/g, '')) * 10000;
+            } else if (parseInt(initialBudget.replace(/[^0-9]/g, ''))) {
+                initialMoney = parseInt(initialBudget.replace(/[^0-9]/g, ''));
+            }
         }
     }
 
     const spentSoFar = reservations.reduce((sum, res) => sum + res.price, 0);
-    const availableBudgetForPlan = initialMoney - spentSoFar; 
+    const availableBudgetForPlan = initialMoney - spentSoFar;
 
     // 예약금을 제외한 실제 사용 가능한 금액을 기본값으로 시작
     const [budget, setBudget] = useState(availableBudgetForPlan);
@@ -45,71 +49,73 @@ export default function Plan({ onBack, initialBudget, city, tripDates, reservati
 
     const THEME_COLOR = "#1e6efa";
 
-    // Mock data generator
-    const generateMockItinerary = () => {
+    // Gemini API 호출을 통한 일정 생성
+    const generateItineraryWithGemini = async () => {
         setIsGenerating(true);
         setItinerary(null);
         setActiveDay(1);
 
-        setTimeout(() => {
-            const mockDays = [];
-            let totalCost = 0;
-            const dailyBudget = budget / days; // 하루 예산
+        const apiKey = process.env.REACT_APP_GCP_API_KEY;
+        const model = "gemini-3.1-flash-lite-preview";
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
-            const placesVariations = [
-                // Type 1: 기본 시내 관광
-                [
-                    { time: "10:00", place: `${destination} 명소 거리 산책`, type: "attraction", desc: "도심 전체를 4K 화면으로 감상하며 여유롭게 아침을 엽니다." },
-                    { time: "13:00", place: "골목길 현지 로컬 식당", type: "restaurant", desc: "구글 맵 평점 4.5 이상의 현지 맛집을 랜선으로 배달음식과 즐겨요." },
-                    { time: "15:30", place: `${destination} 시립 미술관`, type: "attraction", desc: "예술과 역사를 느낄 수 있는 조용한 오후 오디오 가이드 투어." },
-                    { time: "19:00", place: "안락한 숙소에서 야경 감상", type: "accommodation", desc: "야경 뷰포인트가 완벽한 방구석에서 휴식 및 일정 정리." }
-                ],
-                // Type 2: 랜드마크 핫플
-                [
-                    { time: "10:30", place: `${destination} 최고 타워 전망대`, type: "attraction", desc: "도시의 스카이라인을 한눈에 내려다볼 수 있는 랜선 전망대 투어." },
-                    { time: "13:30", place: "현지인 추천 유명 카페 & 브런치", type: "restaurant", desc: "인스타그래머블한 디저트와 함께하는 달콤한 휴식." },
-                    { time: "16:00", place: "최대 규모 쇼핑몰 아이쇼핑", type: "attraction", desc: "현지 브랜드와 신기한 아이템들을 구경하는 스트리트 뷰." },
-                    { time: "19:30", place: "숙소 근처 호프집 (배달 야식)", type: "restaurant", desc: "하루의 피로를 날려버릴 시원한 맥주 한 잔의 여유." }
-                ],
-                // Type 3: 로컬 & 힐링
-                [
-                    { time: "09:30", place: "현지 활기찬 전통 시장 탐방", type: "attraction", desc: "시크릿한 골목길에서 펼쳐지는 시장 분위기 넘겨보기." },
-                    { time: "12:30", place: "길거리 인기 음식 투어", type: "restaurant", desc: "다양한 길거리 간식으로 배를 채우는 소소한 재미." },
-                    { time: "15:00", place: `${destination} 근교 대형 공원 산책`, type: "attraction", desc: "푸른 잔디밭에서 돗자리를 펴고 누워있는 듯한 랜선 힐링." },
-                    { time: "18:00", place: "숙소 반신욕 및 룸서비스", type: "accommodation", desc: "호캉스의 꽃, 욕조 반신욕으로 지친 몸을 녹이는 완벽한 저녁." }
-                ],
-                // Type 4: 액티비티 / 이색 체험
-                [
-                    { time: "10:00", place: `${destination} 유명 테마파크 정복`, type: "attraction", desc: "짜릿한 롤러코스터 1인칭 POV 영상으로 대리 만족!" },
-                    { time: "14:00", place: "테마파크 내 캐릭터 레스토랑", type: "restaurant", desc: "과몰입을 돕는 귀여운 캐릭터 테마의 가상 식사 시간." },
-                    { time: "17:30", place: "야간 퍼레이드 및 불꽃놀이", type: "attraction", desc: "화려한 불꽃놀이 명당에서 직관하는 하이라이트 영상." },
-                    { time: "20:00", place: "기념품 언박싱 (온라인 쇼핑)", type: "accommodation", desc: "현지 직구로 배송시킨 기념품을 뜯어보는 짜릿함." }
-                ]
-            ];
+        const prompt = `당신은 현지 여행 전문가이자 예능 작가 뺨치는 유쾌한 '도파민 여행 플래너'입니다. 사용자가 '${destination}'(으)로 ${days}일간 실제 여행을 떠납니다. 
+예산은 총 ${budget}원입니다. 
+다음 JSON 형식으로 ${days}일치 일정을 짜주세요. 매일 4개의 일정을 포함해야 합니다.
 
-            for (let i = 1; i <= days; i++) {
-                const variationIndex = (i - 1) % placesVariations.length;
-                const v = placesVariations[variationIndex];
+**중요 사항 (절대 준수):**
+1. '방구석', '유튜브' 같은 가상 컨셉은 빼고 사용자가 실제로 그 도시에 방문하는 설정입니다. 
+2. 단, 평범하고 지루한 관광 코스는 거부합니다! 일정 중 1~2개는 사람들의 '도파민이 폭발'할 수 있는 극강의 미친 텐션의 이색 기행이나 황당한 익스트림 미션(예: 템스강 다이빙, 에펠탑 앞에서 봉산탈춤 추기, 타임스퀘어 한복판에서 돗자리 깔고 낮잠자기 등)을 반드시 섞어서 일정표를 아주 웃기고 자극적으로 만들어주세요.
+3. 예산이 총 ${budget}원 뿐이므로, 지정된 예산을 절대 초과하지 않도록 철저히 계산하세요. 돈이 모자라거나 0원이라면 "무료 야외 수영(템스강 입수)" 같은 비용이 0원인 기상천외한 방법으로 몸으로 때우는 일정을 넣으세요.
+4. 매일매일 다른 컨셉의 일정을 짜주되, 설명(desc)에 요즘 유행하는 밈이나 예능 자막 같은 찰진 드립을 팍팍 넣어주세요.
+5. 방문하는 장소나 미션이 다른 날과 겹치지 않게 아주 다양하게 구성해주세요.
+응답은 반드시 JSON 형식이어야 합니다. Markdown 백틱(\`\`\`)이나 다른 텍스트 없이 JSON만 반환하세요.
 
-                const dailyEvents = [
-                    { time: v[0].time, place: v[0].place, type: v[0].type, desc: v[0].desc, cost: Math.round((dailyBudget * 0.15) / 100) * 100 },
-                    { time: v[1].time, place: v[1].place, type: v[1].type, desc: v[1].desc, cost: Math.round((dailyBudget * 0.25) / 100) * 100 },
-                    { time: v[2].time, place: v[2].place, type: v[2].type, desc: v[2].desc, cost: Math.round((dailyBudget * 0.20) / 100) * 100 },
-                    { time: v[3].time, place: v[3].place, type: v[3].type, desc: v[3].desc, cost: Math.round((dailyBudget * 0.35) / 100) * 100 }
-                ];
+형식:
+{
+    "days": [
+        [
+            { "time": "09:30", "place": "장소 이름", "type": "attraction", "desc": "설명 (30자 내외)", "cost": 10000 },
+            { "time": "12:45", "place": "식당 이름", "type": "restaurant", "desc": "설명", "cost": 20000 },
+            { "time": "15:20", "place": "장소 이름", "type": "attraction", "desc": "설명", "cost": 15000 },
+            { "time": "19:10", "place": "숙소/야경", "type": "accommodation", "desc": "설명", "cost": 0 }
+        ]
+        // ... (총 ${days}일치 배열)
+    ],
+    "totalCost": 총 예상 비용 (숫자, 예산 ${budget}원 이하),
+    "placesSummary": "방문할 주요 가상 명소 요약 (예: 모니터 앞 주요 명소 및 현지 배달 식당 등 12곳 탐방)",
+    "aiReview": "일정에 대한 유쾌한 한 줄 평 (따옴표 포함)"
+}`;
 
-                mockDays.push(dailyEvents);
-                dailyEvents.forEach(e => { totalCost += e.cost; });
+        try {
+            const response = await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                    }
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                const errorMessage = errorData.error?.message || "알 수 없는 오류가 발생했습니다.";
+                throw new Error(errorMessage);
             }
 
-            setItinerary({
-                days: mockDays,
-                totalCost: totalCost,
-                placesSummary: `모니터 앞 주요 명소 및 현지 배달 식당 등 ${days * 3}곳 탐방`,
-                aiReview: `"${destination} 거리의 예술적 향기와 활기를 방 안에서 100% 느낄 수 있었던 최고의 랜선 힐링!"`
-            });
+            const data = await response.json();
+            const textResponse = data.candidates[0].content.parts[0].text;
+            const parsedItinerary = JSON.parse(textResponse);
+
+            setItinerary(parsedItinerary);
+        } catch (error) {
+            console.error("Error generating itinerary:", error);
+            alert(`일정 생성에 실패했습니다: ${error.message}\n\n(API 키 설정이나 권한, 결제 상태를 확인해주세요.)`);
+        } finally {
             setIsGenerating(false);
-        }, 1800); // 1.8초 딜레이 (로딩 연출 효과)
+        }
     };
 
     return (
@@ -117,15 +123,15 @@ export default function Plan({ onBack, initialBudget, city, tripDates, reservati
 
             {/* 1. Left Layout: Destination Setting or Map */}
             <div style={{ flex: 1, backgroundColor: '#e5e7eb', borderRight: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
-                
+
                 {/* 동적 구글 맵 배경 */}
-                <iframe 
+                <iframe
                     title="map"
-                    width="100%" 
-                    height="100%" 
-                    frameBorder="0" 
+                    width="100%"
+                    height="100%"
+                    frameBorder="0"
                     style={{ border: 0, position: 'absolute', top: 0, left: 0, zIndex: 0 }}
-                    src={`https://maps.google.com/maps?q=${destination}&t=&z=12&ie=UTF8&iwloc=&output=embed`} 
+                    src={`https://maps.google.com/maps?q=${destination}&t=&z=12&ie=UTF8&iwloc=&output=embed`}
                     allowFullScreen
                 ></iframe>
 
@@ -140,69 +146,53 @@ export default function Plan({ onBack, initialBudget, city, tripDates, reservati
                             {Icons.back} 메인으로
                         </button>
                     )}
-                    {itinerary && !isGenerating && (
-                        <button 
-                            onClick={() => { setItinerary(null); setIsGenerating(false); }} 
-                            style={{ background: THEME_COLOR, border: 'none', color: '#fff', padding: '12px 24px', borderRadius: 20, display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontWeight: 800, boxShadow: '0 4px 15px rgba(30, 110, 250, 0.3)' }}
-                        >
-                            조건 다시 설정
-                        </button>
-                    )}
                 </div>
 
                 {(!itinerary || isGenerating) && (
                     <div style={{ background: 'rgba(255,255,255,0.95)', padding: '40px 35px', borderRadius: 24, zIndex: 10, width: '100%', maxWidth: 420, boxShadow: '0 20px 50px rgba(0,0,0,0.2)', backdropFilter: 'blur(15px)' }}>
-                    <h2 style={{ fontSize: 22, fontWeight: 900, marginTop: 0, marginBottom: 30, color: '#111', display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ color: THEME_COLOR }}>{Icons.sparkles}</span> 여행 일정 Planner
-                    </h2>
+                        <h2 style={{ fontSize: 22, fontWeight: 900, marginTop: 0, marginBottom: 30, color: '#111', display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ color: THEME_COLOR }}>{Icons.sparkles}</span> 여행 일정 Planner
+                        </h2>
 
-                    <div style={{ marginBottom: 20 }}>
-                        <div style={{ fontSize: 13, fontWeight: 800, color: '#555', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>
-                            {Icons.location} 도착할 가상 여행지
+                        <div style={{ marginBottom: 20 }}>
+                            <div style={{ fontSize: 13, fontWeight: 800, color: '#555', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>
+                                {Icons.location} 도착할 가상 여행지
+                            </div>
+                            <div style={{ width: '100%', padding: '15px 20px', borderRadius: 12, border: '1px solid #ddd', boxSizing: 'border-box', fontSize: 16, fontWeight: 700, color: '#111', background: '#f8fafc' }}>
+                                {destination}
+                            </div>
                         </div>
-                        <input
-                            style={{ width: '100%', padding: '15px 20px', borderRadius: 12, border: '1px solid #ddd', boxSizing: 'border-box', fontSize: 16, fontWeight: 700 }}
-                            value={destination}
-                            onChange={e => setDestination(e.target.value)}
-                            placeholder="예: 파리, 런던, 삿포로"
-                        />
-                    </div>
 
-                    <div style={{ marginBottom: 20 }}>
-                        <div style={{ fontSize: 13, fontWeight: 800, color: '#555', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>
-                            {Icons.calendar} 여행 확정 기간
+                        <div style={{ marginBottom: 20 }}>
+                            <div style={{ fontSize: 13, fontWeight: 800, color: '#555', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>
+                                {Icons.calendar} 여행 확정 기간
+                            </div>
+                            <div style={{ width: '100%', padding: '15px 20px', borderRadius: 12, border: '1px solid #ddd', boxSizing: 'border-box', fontSize: 16, fontWeight: 700, color: '#111', background: '#f8fafc' }}>
+                                {`${sDate.getMonth() + 1}.${sDate.getDate()}`} — {`${eDate.getMonth() + 1}.${eDate.getDate()}`} ({days}일간)
+                            </div>
                         </div>
-                        <div style={{ width: '100%', padding: '15px 20px', borderRadius: 12, border: '1px solid #ddd', boxSizing: 'border-box', fontSize: 16, fontWeight: 700, color: '#111', background: '#f8fafc' }}>
-                            {`${sDate.getMonth() + 1}.${sDate.getDate()}`} — {`${eDate.getMonth() + 1}.${eDate.getDate()}`} ({days}일간)
-                        </div>
-                    </div>
 
-                    <div style={{ marginBottom: 35 }}>
-                        <div style={{ fontSize: 13, fontWeight: 800, color: '#555', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>
-                            {Icons.money} 플래너용 남은 예비비 원 (항공/숙소 제외)
+                        <div style={{ marginBottom: 35 }}>
+                            <div style={{ fontSize: 13, fontWeight: 800, color: '#555', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>
+                                {Icons.money} 플래너용 남은 예산 (항공/숙소 제외)
+                            </div>
+                            <div style={{ width: '100%', padding: '15px 20px', borderRadius: 12, border: '1px solid #3264ff', boxSizing: 'border-box', fontSize: 18, fontWeight: 900, color: '#3264ff', background: '#f0f4ff', display: 'flex', justifyContent: 'space-between' }}>
+                                <span>{Number(budget).toLocaleString()}</span>
+                                <span>원</span>
+                            </div>
                         </div>
-                        <div style={{ position: 'relative' }}>
-                            <input
-                                type="number"
-                                style={{ width: '100%', padding: '15px 20px', borderRadius: 12, border: '1px solid #3264ff', boxSizing: 'border-box', fontSize: 18, fontWeight: 900, color: '#3264ff', background: '#f0f4ff', paddingRight: 40 }}
-                                value={budget}
-                                onChange={e => setBudget(Number(e.target.value))}
-                            />
-                            <div style={{ position: 'absolute', right: 20, top: '50%', transform: 'translateY(-50%)', fontWeight: 800, color: '#3264ff' }}>원</div>
-                        </div>
-                    </div>
 
-                    <button
-                        onClick={generateMockItinerary}
-                        disabled={isGenerating}
-                        style={{ width: '100%', padding: '18px', background: THEME_COLOR, color: '#fff', border: 'none', borderRadius: 12, fontSize: 16, fontWeight: 900, cursor: isGenerating ? 'not-allowed' : 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 10, transition: 'all 0.3s', opacity: isGenerating ? 0.7 : 1 }}
-                    >
-                        {isGenerating ? (
-                            <span style={{ animation: 'pulse 1.5s infinite' }}>AI가 완벽한 일정을 짜는 중...</span>
-                        ) : (
-                            <><span style={{ animation: 'pulse 2s infinite' }}>{Icons.sparkles}</span> Gemini로 일정 짜기</>
-                        )}
-                    </button>
+                        <button
+                            onClick={generateItineraryWithGemini}
+                            disabled={isGenerating}
+                            style={{ width: '100%', padding: '18px', background: THEME_COLOR, color: '#fff', border: 'none', borderRadius: 12, fontSize: 16, fontWeight: 900, cursor: isGenerating ? 'not-allowed' : 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 10, transition: 'all 0.3s', opacity: isGenerating ? 0.7 : 1 }}
+                        >
+                            {isGenerating ? (
+                                <span style={{ animation: 'pulse 1.5s infinite' }}>AI가 완벽한 일정을 짜는 중...</span>
+                            ) : (
+                                <><span style={{ animation: 'pulse 2s infinite' }}>{Icons.sparkles}</span> Gemini로 일정 짜기</>
+                            )}
+                        </button>
                     </div>
                 )}
             </div>
@@ -285,22 +275,24 @@ export default function Plan({ onBack, initialBudget, city, tripDates, reservati
                                 <div style={{ width: 40, height: 40, borderRadius: 20, background: '#f0f4ff', color: THEME_COLOR, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                                     {Icons.AI}
                                 </div>
-                                <div style={{ fontWeight: 900, fontSize: 18, color: '#111' }}>AI 여행 결산 리포트</div>
+                                <div style={{ fontWeight: 900, fontSize: 18, color: '#111' }}>Day {activeDay} 결산 리포트</div>
                             </div>
 
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 15, marginBottom: 20 }}>
                                 <div style={{ background: '#f8fafc', padding: '18px 15px', borderRadius: 12 }}>
-                                    <div style={{ fontSize: 12, color: '#888', fontWeight: 700, marginBottom: 6 }}>총 예상 지출</div>
-                                    <div style={{ fontSize: 20, fontWeight: 900, color: THEME_COLOR }}>₩{itinerary.totalCost.toLocaleString()}</div>
+                                    <div style={{ fontSize: 12, color: '#888', fontWeight: 700, marginBottom: 6 }}>Day {activeDay} 누적 지출</div>
+                                    <div style={{ fontSize: 20, fontWeight: 900, color: THEME_COLOR }}>
+                                        ₩{itinerary.days.slice(0, activeDay).flat().reduce((sum, item) => sum + (item.cost || 0), 0).toLocaleString()}
+                                    </div>
                                 </div>
                                 <div style={{ background: '#f8fafc', padding: '18px 15px', borderRadius: 12 }}>
-                                    <div style={{ fontSize: 12, color: '#888', fontWeight: 700, marginBottom: 6 }}>잔여 예비비</div>
-                                    <div style={{ fontSize: 20, fontWeight: 900, color: (budget - itinerary.totalCost) >= 0 ? '#10b981' : '#ef4444' }}>
-                                        ₩{(budget - itinerary.totalCost).toLocaleString()}
+                                    <div style={{ fontSize: 12, color: '#888', fontWeight: 700, marginBottom: 6 }}>잔여 예산</div>
+                                    <div style={{ fontSize: 20, fontWeight: 900, color: (budget - itinerary.days.slice(0, activeDay).flat().reduce((sum, item) => sum + (item.cost || 0), 0)) >= 0 ? '#10b981' : '#ef4444' }}>
+                                        ₩{(budget - itinerary.days.slice(0, activeDay).flat().reduce((sum, item) => sum + (item.cost || 0), 0)).toLocaleString()}
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <div style={{ background: '#f8fafc', padding: '15px', borderRadius: 12, marginBottom: 20 }}>
                                 <div style={{ fontSize: 12, color: '#888', fontWeight: 700, marginBottom: 6 }}>방문 예정 요약</div>
                                 <div style={{ fontSize: 14, fontWeight: 700, color: '#333' }}>{itinerary.placesSummary}</div>

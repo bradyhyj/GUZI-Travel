@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { TRAVEL_DATA } from "./data";
 
 const Icon = ({ name, size = 16, color = "currentColor" }) => {
@@ -20,7 +20,7 @@ const CITY_CODES = {
   "도쿄": "HND", "오사카": "KIX", "후쿠오카": "FUK", "삿포로": "CTS", "뉴욕": "JFK", "로스엔젤레스": "LAX", "런던": "LHR", "파리": "CDG", "로마": "FCO", "대만": "TPE", "상하이": "PVG"
 };
 
-export default function Landing({ onSearch, reservations = [], onBoarding, onCancelBooking, initialDates }) {
+export default function Landing({ onSearch, reservations = [], onBoarding, onCancelBooking, initialDates, budget, onBudgetChange }) {
   const [activeTab, setActiveTab] = useState('항공권');
   const [cityInput, setCityInput] = useState("도쿄");
   const [isCityOpen, setIsCityOpen] = useState(false);
@@ -29,17 +29,17 @@ export default function Landing({ onSearch, reservations = [], onBoarding, onCan
   const [startDate, setStartDate] = useState(initialDates?.startDate || new Date(2026, 4, 10));
   const [endDate, setEndDate] = useState(initialDates?.endDate || new Date(2026, 4, 15));
   const [adultCount, setAdultCount] = useState(1);
-  const [budgetInput, setBudgetInput] = useState("50만원");
+  
+  const [budgetInput, setBudgetInput] = useState(budget || 500000);
+
+  // Sync internal input state if global budget changes
+  useEffect(() => {
+    setBudgetInput(budget || 500000);
+  }, [budget]);
+
   const [showTicket, setShowTicket] = useState(false);
 
-  let totalBudgetNum = 100000;
-  if(budgetInput) {
-      if(budgetInput.includes("만")) {
-          totalBudgetNum = parseInt(budgetInput.replace(/[^0-9]/g, '')) * 10000;
-      } else if(parseInt(budgetInput.replace(/[^0-9]/g, ''))) {
-          totalBudgetNum = parseInt(budgetInput.replace(/[^0-9]/g, ''));
-      }
-  }
+  const totalBudgetNum = budget || 500000;
   const spentSoFar = reservations.reduce((sum, res) => sum + res.price, 0);
   const remainingBudget = totalBudgetNum - spentSoFar;
 
@@ -129,25 +129,40 @@ export default function Landing({ onSearch, reservations = [], onBoarding, onCan
             <div style={{ fontWeight: 800, fontSize: 18, marginBottom: 5, color: '#111' }}>가상 예약 예산 설정</div>
             <div style={{ fontSize: 14, color: '#666' }}>여행 계획을 짤 때 사용할 비용을 입력해주세요.</div>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 12 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 12, opacity: reservations.length > 0 ? 0.5 : 1, pointerEvents: reservations.length > 0 ? 'none' : 'auto' }}>
             <div style={{ display: 'flex', gap: 8 }}>
-              {['50만원', '100만원', '150만원'].map(amt => (
+              {[500000, 1000000, 1500000].map(amt => (
                 <button 
                   key={amt}
-                  onClick={() => setBudgetInput(amt)} 
-                  style={{ padding: '6px 14px', borderRadius: 20, border: budgetInput === amt ? '1px solid #3264ff' : '1px solid #ddd', background: budgetInput === amt ? '#f0f4ff' : '#fff', color: budgetInput === amt ? '#3264ff' : '#666', fontWeight: 700, cursor: 'pointer', transition: '0.2s', fontSize: 13 }}
+                  onClick={() => { setBudgetInput(amt); onBudgetChange(amt); }} 
+                  style={{ padding: '6px 14px', borderRadius: 20, border: budget === amt ? '1px solid #3264ff' : '1px solid #ddd', background: budget === amt ? '#f0f4ff' : '#fff', color: budget === amt ? '#3264ff' : '#666', fontWeight: 700, cursor: 'pointer', transition: '0.2s', fontSize: 13 }}
                 >
-                  {amt}
+                  {amt / 10000}만원
                 </button>
               ))}
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', background: '#f5f7fa', border: '2px solid transparent', padding: '12px 20px', borderRadius: 12, transition: '0.2s', width: 180 }} onFocus={(e) => e.currentTarget.style.borderColor = '#3264ff'} onBlur={(e) => e.currentTarget.style.borderColor = 'transparent'}>
-              <input
-                style={{ background: 'transparent', border: 'none', fontSize: 20, fontWeight: 900, color: '#111', outline: 'none', width: '100%', textAlign: 'right' }}
-                value={budgetInput}
-                onChange={e => setBudgetInput(e.target.value)}
-                placeholder="직접 입력"
-              />
+            <div style={{ display: 'flex', gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', background: '#f5f7fa', border: '2px solid transparent', padding: '12px 20px', borderRadius: 12, transition: '0.2s', width: 180 }} onFocus={(e) => e.currentTarget.style.borderColor = '#3264ff'} onBlur={(e) => e.currentTarget.style.borderColor = 'transparent'}>
+                <input
+                  type="text"
+                  style={{ background: 'transparent', border: 'none', fontSize: 20, fontWeight: 900, color: '#111', outline: 'none', width: '100%', textAlign: 'right' }}
+                  value={budgetInput ? budgetInput.toLocaleString() : ""}
+                  onChange={e => {
+                    const val = parseInt(e.target.value.replace(/[^0-9]/g, '')) || 0;
+                    setBudgetInput(val);
+                  }}
+                  placeholder="직접 입력"
+                />
+                <span style={{ fontWeight: 800, color: '#111', marginLeft: 5 }}>원</span>
+              </div>
+              <button 
+                onClick={() => onBudgetChange(budgetInput)}
+                style={{ padding: '0 20px', backgroundColor: '#3264ff', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '800', cursor: 'pointer', transition: '0.2s' }}
+                onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#1e40af'}
+                onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#3264ff'}
+              >
+                설정
+              </button>
             </div>
           </div>
         </div>
